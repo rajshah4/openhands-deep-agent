@@ -2,8 +2,113 @@
 
 ## Overview
 
-This repository is dedicated to deep research work, exploring advanced capabilities and implementations for the OpenHands agent ecosystem.
+This repository demonstrates how to build **deep research agents** using the [OpenHands SDK](https://docs.openhands.dev/sdk). It showcases state-of-the-art patterns for multi-agent orchestration, task decomposition, and knowledge synthesis.
 
 ## Status
 
 🔬 **Active Development** - Deep research in progress
+
+---
+
+## Notebooks
+
+### 1. `01_basic_deep_research.ipynb` - Basic Deep Research Agent
+A minimal implementation showing the core concepts:
+- **Planner**: Decomposes research topics into subtasks
+- **Searcher**: Web search via Tavily MCP integration
+- **Synthesizer**: Combines findings into a coherent report
+- **Simple orchestration loop**
+
+### 2. `02_advanced_deep_research.ipynb` - Full-Featured Deep Research Agent *(Coming Soon)*
+Advanced implementation with all architectural patterns:
+- Multi-agent delegation with sub-agent spawning
+- Persistent state management (files + conversation persistence)
+- Structured Pydantic outputs with validation
+- Iterative refinement and error handling
+- Full controller/orchestrator pattern
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CONTROLLER/ORCHESTRATOR                       │
+│              (Main agent with sub-agent delegation)              │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+        ┌─────────────┼─────────────┐
+        ▼             ▼             ▼
+┌───────────────┐ ┌───────────────┐ ┌───────────────┐
+│   PLANNER     │ │   SEARCHER    │ │  SYNTHESIZER  │
+│   AGENT       │ │   AGENT       │ │    AGENT      │
+├───────────────┤ ├───────────────┤ ├───────────────┤
+│ • Decompose   │ │ • Web search  │ │ • Aggregate   │
+│   research    │ │   (Tavily MCP)│ │   findings    │
+│ • Task list   │ │ • Structured  │ │ • Citations   │
+│ • Priorities  │ │   snippets    │ │ • Synthesis   │
+└───────────────┘ └───────────────┘ └───────────────┘
+        │                 │                 │
+        └─────────────────┼─────────────────┘
+                          ▼
+              ┌───────────────────────┐
+              │  STATE PERSISTENCE    │
+              │  (Files + Conversation│
+              │   Persistence)        │
+              └───────────────────────┘
+```
+
+---
+
+## Key Patterns Demonstrated
+
+| Pattern | Basic Notebook | Advanced Notebook |
+|---------|:-------------:|:-----------------:|
+| Task Decomposition | ✅ | ✅ |
+| Web Search (Tavily MCP) | ✅ | ✅ |
+| Synthesis with Citations | ✅ | ✅ |
+| Custom Tools (Pydantic) | ✅ | ✅ |
+| Sub-agent Delegation | ❌ | ✅ |
+| State Persistence | ❌ | ✅ |
+| Iterative Refinement | ❌ | ✅ |
+| Error Recovery | ❌ | ✅ |
+
+---
+
+## Getting Started
+
+### Prerequisites
+- Python 3.11+
+- [uv package manager](https://docs.astral.sh/uv/) (recommended)
+- LLM API key (Anthropic, OpenAI, or [OpenHands Cloud](https://app.all-hands.dev))
+- Tavily API key for web search
+
+### Installation
+
+```bash
+# Install OpenHands SDK
+pip install openhands-sdk openhands-tools
+
+# Set environment variables
+export LLM_API_KEY="your-llm-api-key"
+export TAVILY_API_KEY="your-tavily-api-key"
+```
+
+### Run the Notebooks
+
+```bash
+# Launch Jupyter
+jupyter notebook
+
+# Or run directly
+uv run python 01_basic_deep_research.py
+```
+
+---
+
+## References
+
+- [OpenHands SDK Documentation](https://docs.openhands.dev/sdk)
+- [OpenHands SDK GitHub](https://github.com/OpenHands/software-agent-sdk)
+- [Tavily MCP Server](https://github.com/tavily-ai/tavily-mcp)
+- [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
