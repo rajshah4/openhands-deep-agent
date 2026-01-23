@@ -1,0 +1,13 @@
+# OpenHands SDK and tools
+openhands-sdk>=0.1.0
+openhands-tools>=0.1.0
+
+# Web search
+tavily-python>=0.3.0
+
+# Notebook support
+jupyter>=1.0.0
+ipykernel>=6.0.0
+
+# Optional: for better notebook experience
+ipywidgets>=8.0.0
