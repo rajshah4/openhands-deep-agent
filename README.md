@@ -2,100 +2,130 @@
 
 ## Overview
 
-This repository demonstrates how to build **deep research agents** using the [OpenHands SDK](https://docs.openhands.dev/sdk). It showcases state-of-the-art patterns for multi-agent orchestration, task decomposition, and knowledge synthesis.
+This repository demonstrates how to build **deep research agents** using the [OpenHands SDK](https://docs.openhands.dev/sdk). It showcases multi-agent orchestration, iterative refinement, and knowledge synthesis patterns.
 
 ## Status
 
-🔬 **Active Development** - Deep research in progress
+✅ **Working Examples** - Two complete notebooks ready to use
 
 ---
 
 ## Notebooks
 
-### 1. `01_basic_deep_research.ipynb` - Basic Deep Research Agent
-A complete implementation showing the core concepts:
-- **Planner**: Decomposes research topics into subtasks using LLM
-- **Searcher**: Web search via Tavily API (direct integration)
-- **Synthesizer**: Combines findings into a coherent report with citations
-- **Orchestration loop**: Manages the complete research workflow
-- **Structured outputs**: All data validated with Pydantic models
+### 1. `00_simple_agent.ipynb` - Getting Started with OpenHands SDK
 
-### 2. `02_advanced_deep_research.ipynb` - Full-Featured Deep Research Agent *(Coming Soon)*
-Advanced implementation with all architectural patterns:
-- Multi-agent delegation with sub-agent spawning
-- Persistent state management (files + conversation persistence)
-- Structured Pydantic outputs with validation
-- Iterative refinement and error handling
-- Full controller/orchestrator pattern
+A minimal introduction to the OpenHands SDK:
+- Setting up LLM and environment
+- Creating custom tools (Tavily search with Pydantic)
+- Understanding the Action → Observation → Executor → ToolDefinition pattern
+- Running a basic research query
+
+**Best for:** Learning the SDK basics before diving into advanced patterns.
+
+### 2. `01_deep_research.ipynb` - Deep Research Agent (3-Phase Workflow)
+
+A complete deep research implementation with multi-agent collaboration:
+
+| Phase | Agent | Output |
+|-------|-------|--------|
+| **1. Planning** | GPT-4o creates plan → GPT-5.1 critiques → iterate until approved | `research_plan.md` |
+| **2. Research** | GPT-4o executes Tavily searches, gathers raw findings | Updated `research_plan.md` |
+| **3. Synthesis** | GPT-5.1 synthesizes all findings into comprehensive report | `research_report.md` |
+
+**Features:**
+- ✅ Multi-agent collaboration (GPT-4o + GPT-5.1)
+- ✅ Iterative plan refinement with scoring
+- ✅ File-based state management
+- ✅ Professional report synthesis with citations
+- ✅ Error recovery in tool execution
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    CONTROLLER/ORCHESTRATOR                       │
-│              (Main agent with sub-agent delegation)              │
-└─────────────────────┬───────────────────────────────────────────┘
-                      │
-        ┌─────────────┼─────────────┐
-        ▼             ▼             ▼
-┌───────────────┐ ┌───────────────┐ ┌───────────────┐
-│   PLANNER     │ │   SEARCHER    │ │  SYNTHESIZER  │
-│   AGENT       │ │   AGENT       │ │    AGENT      │
-├───────────────┤ ├───────────────┤ ├───────────────┤
-│ • Decompose   │ │ • Web search  │ │ • Aggregate   │
-│   research    │ │   (Tavily MCP)│ │   findings    │
-│ • Task list   │ │ • Structured  │ │ • Citations   │
-│ • Priorities  │ │   snippets    │ │ • Synthesis   │
-└───────────────┘ └───────────────┘ └───────────────┘
-        │                 │                 │
-        └─────────────────┼─────────────────┘
-                          ▼
-              ┌───────────────────────┐
-              │  STATE PERSISTENCE    │
-              │  (Files + Conversation│
-              │   Persistence)        │
-              └───────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  PHASE 1: PLANNING (with iterative critique)                │
+├─────────────────────────────────────────────────────────────┤
+│  GPT-4o creates plan → GPT-5.1 critiques → improve → loop   │
+│  Output: research_plan.md (approved sub-questions)          │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  PHASE 2: RESEARCH (gather raw findings)                    │
+├─────────────────────────────────────────────────────────────┤
+│  GPT-4o executes Tavily searches for each sub-question      │
+│  Output: research_plan.md (with raw findings + URLs)        │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  PHASE 3: SYNTHESIS (comprehensive report)                  │
+├─────────────────────────────────────────────────────────────┤
+│  GPT-5.1 reads all findings and writes professional report  │
+│  Output: research_report.md                                 │
+│    - Executive Summary                                      │
+│    - Key Findings (by theme)                                │
+│    - Analysis & Implications                                │
+│    - References with URLs                                   │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Key Patterns Demonstrated
 
-| Pattern | Basic Notebook | Advanced Notebook |
-|---------|:-------------:|:-----------------:|
-| Task Decomposition | ✅ | ✅ |
-| Web Search (Tavily API) | ✅ | ✅ |
-| Synthesis with Citations | ✅ | ✅ |
+| Pattern | Notebook 00 | Notebook 01 |
+|---------|:-----------:|:-----------:|
 | Custom Tools (Pydantic) | ✅ | ✅ |
-| Orchestration Loop | ✅ | ✅ |
-| Sub-agent Delegation | ❌ | ✅ |
-| State Persistence | ❌ | ✅ |
+| Web Search (Tavily) | ✅ | ✅ |
+| Task Decomposition | ❌ | ✅ |
+| Multi-Agent Collaboration | ❌ | ✅ |
 | Iterative Refinement | ❌ | ✅ |
-| Error Recovery | ❌ | ✅ |
+| File-based State | ❌ | ✅ |
+| Report Synthesis | ❌ | ✅ |
 
 ---
 
 ## Getting Started
 
-**Quick Start**: See [QUICKSTART.md](QUICKSTART.md) for a 5-minute setup guide.
-
 ### Prerequisites
 - Python 3.11+
-- [uv package manager](https://docs.astral.sh/uv/) (optional)
-- LLM API key (Anthropic, OpenAI, or [OpenHands Cloud](https://app.all-hands.dev))
+- LLM API key (OpenAI recommended for GPT-4o and GPT-5.1)
 - Tavily API key for web search
 
 ### Installation
 
 ```bash
-# Install OpenHands SDK and dependencies
-pip install openhands-sdk openhands-tools tavily-python
+# Install dependencies
+pip install -r requirements.txt
 
-# Set environment variables
-export LLM_API_KEY="your-llm-api-key"
-export TAVILY_API_KEY="your-tavily-api-key"
+# Or install directly
+pip install openhands-sdk python-dotenv tavily-python
+```
+
+### Environment Variables
+
+Copy the example environment file and add your API keys:
+
+```bash
+cp env.example .env
+```
+
+Then edit `.env` with your values:
+
+| Variable | Required | Description |
+|----------|:--------:|-------------|
+| `LLM_API_KEY` | ✅ | Your LLM API key (OpenAI, Anthropic, etc.) |
+| `TAVILY_API_KEY` | ✅ | Your Tavily API key for web search |
+| `LLM_MODEL` | ❌ | Model to use (defaults to `openai/gpt-4o`) |
+| `LLM_BASE_URL` | ❌ | Custom LLM endpoint URL (optional) |
+
+#### Example Configuration (OpenAI)
+
+```bash
+LLM_API_KEY=sk-your-openai-api-key
+LLM_MODEL=openai/gpt-4o
+TAVILY_API_KEY=tvly-your-tavily-key
 ```
 
 ### Run the Notebooks
@@ -104,26 +134,26 @@ export TAVILY_API_KEY="your-tavily-api-key"
 # Launch Jupyter
 jupyter notebook
 
-# Or run the Python script directly
-python 01_basic_deep_research.py
-
-# Or use uv if you prefer
-uv run python 01_basic_deep_research.py
+# Start with notebook 00 to learn the basics
+# Then run notebook 01 for the full deep research workflow
 ```
 
 ---
 
-## Documentation
+## Output Files
 
-- [QUICKSTART.md](QUICKSTART.md) - Get started in 5 minutes
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Detailed architecture and design patterns
-- [01_basic_deep_research.ipynb](01_basic_deep_research.ipynb) - Interactive notebook with full implementation
+When you run `01_deep_research.ipynb`, the following files are created:
+
+| File | Purpose |
+|------|---------|
+| `research_plan.md` | Working document with sub-questions + raw findings |
+| `critique.md` | Plan evaluation feedback (for debugging) |
+| `research_report.md` | **Final deliverable** - comprehensive research report |
 
 ---
 
 ## References
 
 - [OpenHands SDK Documentation](https://docs.openhands.dev/sdk)
-- [OpenHands SDK GitHub](https://github.com/OpenHands/software-agent-sdk)
+- [OpenHands Iterative Refinement Guide](https://docs.openhands.dev/sdk/guides/iterative-refinement)
 - [Tavily API](https://tavily.com) - Get your free API key
-- [Pydantic Documentation](https://docs.pydantic.dev/) - For structured data validation
