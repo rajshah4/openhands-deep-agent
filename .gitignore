@@ -211,7 +211,9 @@ research_plan.md
 research_report.md
 research_summary.md
 critique.md
-checkpoint.json
 findings_*.md
 parallel_findings.md
 parallel_report.md
+
+# SDK persistence directories
+.conversations/

@@ -35,7 +35,7 @@ A complete deep research implementation with multi-agent collaboration:
 **Features:**
 - ✅ Multi-agent collaboration (GPT-4o + GPT-5.1)
 - ✅ Iterative plan refinement with scoring
-- ✅ **Checkpointing** - Resume from crash/interrupt
+- ✅ **Native SDK Persistence** - Event-level auto-save, resume from any point
 - ✅ **Observability** - Laminar tracing support
 - ✅ Professional report synthesis with citations
 
@@ -89,7 +89,7 @@ Advanced pattern with parallel sub-agent delegation:
 | Task Decomposition | ❌ | ✅ | ✅ |
 | Multi-Agent Collaboration | ❌ | ✅ | ✅ |
 | Iterative Refinement | ❌ | ✅ | ✅ |
-| Checkpointing / Resume | ❌ | ✅ | ✅ |
+| Native SDK Persistence | ❌ | ✅ | ❌ |
 | Observability (Laminar) | ❌ | ✅ | ✅ |
 | **Sub-Agent Parallelization** | ❌ | ❌ | ✅ |
 
@@ -160,7 +160,7 @@ When you run `01_deep_research.ipynb`:
 | `research_plan.md` | Working document with sub-questions + raw findings |
 | `critique.md` | Plan evaluation feedback (for debugging) |
 | `research_report.md` | **Final deliverable** - comprehensive research report |
-| `checkpoint.json` | Resume state (auto-deleted on success) |
+| `.conversations/<id>/` | SDK persistence (events + state for resume) |
 
 When you run `02_parallel_research.ipynb`:
 
