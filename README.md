@@ -6,7 +6,7 @@ This repository demonstrates how to build **deep research agents** using the [Op
 
 ## Status
 
-✅ **Working Examples** - Two complete notebooks ready to use
+✅ **Working Examples** - Three notebooks (simple → deep → parallel)
 
 ---
 
@@ -35,9 +35,17 @@ A complete deep research implementation with multi-agent collaboration:
 **Features:**
 - ✅ Multi-agent collaboration (GPT-4o + GPT-5.1)
 - ✅ Iterative plan refinement with scoring
-- ✅ File-based state management
+- ✅ **Checkpointing** - Resume from crash/interrupt
+- ✅ **Observability** - Laminar tracing support
 - ✅ Professional report synthesis with citations
-- ✅ Error recovery in tool execution
+
+### 3. `02_parallel_research.ipynb` - Parallel Sub-Agent Research
+
+Advanced pattern with parallel sub-agent delegation:
+- Spawn dedicated sub-agents for each sub-question
+- Execute searches in parallel using `ThreadPoolExecutor`
+- Isolated context per sub-question (each writes to own file)
+- Aggregate results for final synthesis with GPT-5.1
 
 ---
 
@@ -74,15 +82,16 @@ A complete deep research implementation with multi-agent collaboration:
 
 ## Key Patterns Demonstrated
 
-| Pattern | Notebook 00 | Notebook 01 |
-|---------|:-----------:|:-----------:|
-| Custom Tools (Pydantic) | ✅ | ✅ |
-| Web Search (Tavily) | ✅ | ✅ |
-| Task Decomposition | ❌ | ✅ |
-| Multi-Agent Collaboration | ❌ | ✅ |
-| Iterative Refinement | ❌ | ✅ |
-| File-based State | ❌ | ✅ |
-| Report Synthesis | ❌ | ✅ |
+| Pattern | Notebook 00 | Notebook 01 | Notebook 02 |
+|---------|:-----------:|:-----------:|:-----------:|
+| Custom Tools (Pydantic) | ✅ | ✅ | ✅ |
+| Web Search (Tavily) | ✅ | ✅ | ✅ |
+| Task Decomposition | ❌ | ✅ | ✅ |
+| Multi-Agent Collaboration | ❌ | ✅ | ✅ |
+| Iterative Refinement | ❌ | ✅ | ✅ |
+| Checkpointing / Resume | ❌ | ✅ | ✅ |
+| Observability (Laminar) | ❌ | ✅ | ✅ |
+| **Sub-Agent Parallelization** | ❌ | ❌ | ✅ |
 
 ---
 
@@ -119,6 +128,7 @@ Then edit `.env` with your values:
 | `TAVILY_API_KEY` | ✅ | Your Tavily API key for web search |
 | `LLM_MODEL` | ❌ | Model to use (defaults to `openai/gpt-4o`) |
 | `LLM_BASE_URL` | ❌ | Custom LLM endpoint URL (optional) |
+| `LMNR_PROJECT_API_KEY` | ❌ | Laminar API key for observability ([laminar.sh](https://laminar.sh)) |
 
 #### Example Configuration (OpenAI)
 
@@ -126,6 +136,7 @@ Then edit `.env` with your values:
 LLM_API_KEY=sk-your-openai-api-key
 LLM_MODEL=openai/gpt-4o
 TAVILY_API_KEY=tvly-your-tavily-key
+LMNR_PROJECT_API_KEY=your-laminar-key  # Optional: for tracing
 ```
 
 ### Run the Notebooks
@@ -142,13 +153,35 @@ jupyter notebook
 
 ## Output Files
 
-When you run `01_deep_research.ipynb`, the following files are created:
+When you run `01_deep_research.ipynb`:
 
 | File | Purpose |
 |------|---------|
 | `research_plan.md` | Working document with sub-questions + raw findings |
 | `critique.md` | Plan evaluation feedback (for debugging) |
 | `research_report.md` | **Final deliverable** - comprehensive research report |
+| `checkpoint.json` | Resume state (auto-deleted on success) |
+
+When you run `02_parallel_research.ipynb`:
+
+| File | Purpose |
+|------|---------|
+| `findings_1.md` ... `findings_N.md` | Individual sub-agent findings |
+| `parallel_findings.md` | Aggregated raw findings |
+| `parallel_report.md` | **Final deliverable** - synthesized research report |
+
+---
+
+## Observability
+
+The SDK has built-in [OpenTelemetry tracing](https://docs.openhands.dev/sdk/guides/observability). Set `LMNR_PROJECT_API_KEY` to enable Laminar tracing:
+
+- Agent execution steps
+- Tool calls (Tavily searches)
+- LLM API calls
+- Conversation lifecycle
+
+View traces at [laminar.sh](https://laminar.sh) (free tier available).
 
 ---
 
@@ -156,4 +189,6 @@ When you run `01_deep_research.ipynb`, the following files are created:
 
 - [OpenHands SDK Documentation](https://docs.openhands.dev/sdk)
 - [OpenHands Iterative Refinement Guide](https://docs.openhands.dev/sdk/guides/iterative-refinement)
+- [OpenHands Observability Guide](https://docs.openhands.dev/sdk/guides/observability)
 - [Tavily API](https://tavily.com) - Get your free API key
+- [Laminar](https://laminar.sh) - AI observability platform

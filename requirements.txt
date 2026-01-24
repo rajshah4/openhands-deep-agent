@@ -1,6 +1,6 @@
 # OpenHands SDK and tools
 openhands-sdk>=0.1.0
-openhands-tools>=0.1.0
+litellm>=1.0.0  # Required by openhands-sdk
 
 # Web search
 tavily-python>=0.3.0
