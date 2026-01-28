@@ -4,188 +4,220 @@ This document explains the architecture and design patterns used in the OpenHand
 
 ## Overview
 
-The deep research agent demonstrates state-of-the-art patterns for building AI agents that can conduct comprehensive research on any topic. It combines multiple architectural patterns from leading frameworks while leveraging the OpenHands SDK's capabilities.
+The implementation demonstrates practical patterns for building AI research agents using the OpenHands SDK. It emphasizes simplicity, using file-based state management and multi-agent collaboration.
 
 ## Core Components
 
-### 1. Task Decomposition (Planner Agent)
+### 1. Custom Tool Pattern (Action → Observation → Executor → ToolDefinition)
 
-The planner breaks down complex research topics into manageable subtasks:
-
-```python
-class PlannerTool:
-    - Decomposes research topics using LLM
-    - Creates prioritized task lists
-    - Manages task dependencies
-    - Outputs structured ResearchPlan objects
-```
-
-**Key Features:**
-- Supports different research depths (quick/moderate/deep)
-- Generates 5-8 specific, actionable tasks
-- Each task has priority and dependencies
-- Uses Pydantic for type-safe data structures
-
-### 2. Information Retrieval (Search Tool)
-
-Web search capabilities using Tavily API:
+The OpenHands SDK requires a specific pattern for custom tools:
 
 ```python
-class SearchTool:
-    - Performs targeted web searches
-    - Returns structured results
-    - Supports basic and advanced search depths
-    - Handles errors gracefully
+# 1. Action: Typed input (what the agent sends)
+class SearchAction(Action):
+    query: str = Field(description="Search query")
+
+# 2. Observation: Typed output (what the agent receives)
+class SearchObservation(Observation):
+    results: str = Field(description="Results")
+    @property
+    def to_llm_content(self):
+        return [TextContent(text=self.results)]
+
+# 3. Executor: Implementation logic
+class SearchExecutor(ToolExecutor):
+    def __call__(self, action: SearchAction, conversation=None) -> SearchObservation:
+        try:
+            r = tavily.search(query=action.query, max_results=5)
+            return SearchObservation(results=formatted_results)
+        except Exception as e:
+            # Return error as observation (don't raise!)
+            return SearchObservation(results=f"Search failed: {e}")
+
+# 4. ToolDefinition: Factory that creates tool instances
+class SearchTool(ToolDefinition[SearchAction, SearchObservation]):
+    @classmethod
+    def create(cls, conv_state) -> List["SearchTool"]:
+        return [cls(
+            description="Web search via Tavily",
+            action_type=SearchAction,
+            observation_type=SearchObservation,
+            executor=SearchExecutor()
+        )]
+
+# 5. Register the tool
+register_tool("TavilySearch", SearchTool.create)
 ```
 
-**Key Features:**
-- Direct API integration (no MCP overhead)
-- Structured SearchResult objects
-- Relevance scoring
-- Configurable result limits
+**Why this pattern?**
+- **Type safety**: Pydantic validates inputs/outputs
+- **Serialization**: Actions/Observations can be persisted
+- **Factory pattern**: Tools can access conversation state during creation
 
-### 3. Knowledge Synthesis (Synthesizer Agent)
+### 2. Built-in Tools
 
-Combines findings into coherent reports:
+The SDK provides ready-to-use tools:
 
 ```python
-class SynthesizerTool:
-    - Aggregates research findings
-    - Creates executive summaries
-    - Maintains citation chains
-    - Outputs markdown or JSON reports
+from openhands.tools.file_editor import FileEditorTool  # Read/write files
+from openhands.tools.terminal import TerminalTool        # Run commands
+from openhands.tools.task_tracker import TaskTrackerTool # Track tasks
 ```
 
-**Key Features:**
-- LLM-powered synthesis
-- Structured ResearchReport objects
-- Evidence-based findings with confidence scores
-- Multiple output formats
+### 3. Multi-Agent Collaboration
 
-### 4. Orchestration Layer
-
-The ResearchOrchestrator manages the workflow:
+Two separate LLM instances work together:
 
 ```python
-class ResearchOrchestrator:
-    - Coordinates agent activities
-    - Manages conversation flow
-    - Tracks research state
-    - Collects performance metrics
+# Research agent (GPT-4o) - creates plans, executes searches
+llm = LLM(model="openai/gpt-4o", api_key=...)
+agent = Agent(llm=llm, tools=[FileEditorTool, TavilySearch])
+
+# Critique agent (GPT-5.1) - evaluates plans, synthesizes reports
+critique_llm = LLM(model="openai/gpt-5.1", api_key=...)
+critique_agent = Agent(llm=critique_llm, tools=[FileEditorTool])
 ```
 
-**Workflow Phases:**
-1. **Planning**: Decompose topic into tasks
-2. **Execution**: Search and gather information
-3. **Synthesis**: Combine findings into report
+Each agent has its own `Conversation` and can read/write shared files.
 
-## Data Models (Pydantic)
+### 4. File-Based State Management
 
-All data structures use Pydantic for validation:
+State is managed through markdown files (human-readable, persistent):
+
+| File | Purpose |
+|------|---------|
+| `research_plan.md` | Working document with sub-questions + raw findings |
+| `critique.md` | Plan evaluation feedback from critique agent |
+| `research_report.md` | Final synthesized report |
+
+Agents read and write these files using `FileEditorTool`.
+
+### 5. Native SDK Persistence
+
+The SDK automatically saves conversation state:
 
 ```python
-ResearchTask      # Individual research subtask
-ResearchPlan      # Complete plan with tasks
-SearchResult      # Web search result
-ResearchFinding   # Synthesized insight
-ResearchReport    # Final research output
+import uuid
+
+SESSION_NAME = "my-research-session"
+SESSION_ID = uuid.uuid5(uuid.NAMESPACE_DNS, SESSION_NAME)
+
+conversation = Conversation(
+    agent=agent,
+    workspace=os.getcwd(),
+    persistence_dir="./.conversations",  # Auto-save location
+    conversation_id=SESSION_ID,           # Deterministic ID for resume
+)
 ```
 
-## Design Patterns
+**How it works:**
+- Every event (message, tool call, response) is saved
+- Restart the conversation with same ID → resumes from last state
+- No manual checkpointing needed
 
-### 1. Tool Factory Pattern
+## Workflow Phases (Notebook 01)
 
-Tools are created using factory functions that receive conversation state:
+```
+┌─────────────────────────────────────────────────────────────┐
+│  PHASE 1: PLANNING (iterative refinement)                   │
+├─────────────────────────────────────────────────────────────┤
+│  Loop until approved (max 3 iterations):                    │
+│    1. GPT-4o creates/improves plan → research_plan.md       │
+│    2. GPT-5.1 critiques plan → critique.md                  │
+│    3. If score >= 8/10 or max iterations → proceed          │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  PHASE 2: RESEARCH (execute the plan)                       │
+├─────────────────────────────────────────────────────────────┤
+│  GPT-4o reads plan, performs Tavily searches                │
+│  Appends raw findings to research_plan.md                   │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  PHASE 3: SYNTHESIS (create final report)                   │
+├─────────────────────────────────────────────────────────────┤
+│  GPT-5.1 reads all findings from research_plan.md           │
+│  Writes comprehensive report → research_report.md           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Parallel Sub-Agent Pattern (Notebook 02)
 
 ```python
-def create_research_tools(conv_state) -> List[ToolDefinition]:
-    # Create tools with access to workspace and state
-    return [PlannerTool.create(...), SearchTool.create(...), ...]
+from concurrent.futures import ThreadPoolExecutor
+
+def research_sub_question(question, index):
+    # Each sub-agent has its own conversation
+    sub_agent = Agent(llm=llm, tools=[FileEditorTool, TavilySearch])
+    sub_conversation = Conversation(agent=sub_agent, workspace=cwd)
+    sub_conversation.send_message(f"Research: {question}. Write to findings_{index}.md")
+    sub_conversation.run()
+    return read_file(f"findings_{index}.md")
+
+# Run all sub-questions in parallel
+with ThreadPoolExecutor(max_workers=3) as executor:
+    futures = [executor.submit(research_sub_question, q, i) for i, q in enumerate(questions)]
+    results = [f.result() for f in futures]
 ```
 
-### 2. Action-Observation Pattern
+## Error Handling Pattern
 
-Each tool follows the OpenHands pattern:
-- **Action**: Typed input parameters
-- **Observation**: Structured output with `to_llm_content()` method
-- **Executor**: Implementation logic
+**Return errors as observations** - don't raise exceptions:
 
-### 3. Structured Output Pattern
+```python
+class SearchExecutor(ToolExecutor):
+    def __call__(self, action, conversation=None):
+        try:
+            result = tavily.search(query=action.query)
+            return SearchObservation(results=result)
+        except Exception as e:
+            # ✅ Agent sees error and can adapt
+            return SearchObservation(results=f"Search failed: {e}. Try a different query.")
+```
 
-All outputs use Pydantic models:
-- Type safety and validation
-- Clear data contracts
-- Easy serialization
-- Self-documenting
+**Why?**
+- Raising exceptions crashes the agent loop
+- Returning errors lets the agent retry or adjust strategy
 
-### 4. Phased Execution Pattern
+## Observability
 
-Research follows clear phases:
-- Each phase has specific objectives
-- State persists between phases
-- Progress tracking throughout
+Built-in OpenTelemetry tracing via Laminar:
+
+```python
+# Just set the env var - no code changes needed
+export LMNR_PROJECT_API_KEY=your-key
+```
+
+Traces include: agent steps, tool calls, LLM API calls, conversation lifecycle.
+
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **Markdown files for state** | Human-readable, debuggable, no database needed |
+| **Separate LLMs for different roles** | Different models excel at different tasks |
+| **Iterative refinement loop** | Plans improve through critique feedback |
+| **Native SDK persistence** | Event-sourcing handles checkpointing automatically |
+| **Error as observation** | Keeps agent loop running, enables recovery |
 
 ## Extension Points
 
-### Adding New Tools
+1. **Add new tools**: Follow the Action → Observation → Executor → ToolDefinition pattern
+2. **Different search APIs**: Replace TavilyClient in SearchExecutor
+3. **More sophisticated planning**: Add domain-specific critique criteria
+4. **Additional output formats**: Modify synthesis prompts for JSON, HTML, etc.
 
-1. Define Action and Observation classes
-2. Implement ToolExecutor
-3. Create ToolDefinition
-4. Register with factory function
+## File Structure
 
-### Custom Research Domains
-
-1. Extend ResearchTask with domain-specific fields
-2. Add specialized search strategies
-3. Implement domain-specific synthesis rules
-
-### Alternative Data Sources
-
-1. Replace SearchTool with other APIs
-2. Add database connectors
-3. Integrate with knowledge graphs
-
-## Performance Considerations
-
-- **Token Usage**: Structured prompts minimize token consumption
-- **API Calls**: Batch operations where possible
-- **Error Handling**: Graceful degradation with fallbacks
-- **Caching**: Consider caching search results (not implemented)
-
-## Security Considerations
-
-- **API Keys**: Use environment variables
-- **Input Validation**: Pydantic validates all inputs
-- **Output Sanitization**: Be careful with generated markdown
-- **Rate Limiting**: Respect API limits
-
-## Future Enhancements
-
-1. **Sub-agent Delegation**: Spawn specialized research agents
-2. **State Persistence**: Save/resume research sessions
-3. **Iterative Refinement**: Multi-round research with feedback
-4. **Parallel Execution**: Concurrent task processing
-5. **Knowledge Graph**: Build connections between findings
-
-## Comparison with Other Approaches
-
-| Feature | Our Implementation | LangChain | Pydantic AI | Agno |
-|---------|-------------------|-----------|-------------|------|
-| Task Decomposition | LLM-based planner | Built-in planning | Manual workflows | Role-based |
-| State Management | In-memory + files | Virtual filesystem | Schema + DB | Storage drivers |
-| Tool Integration | Custom + built-in | Extensive tools | Function tools | MCP/DB/APIs |
-| Structured Output | Pydantic models | File artifacts | Pydantic native | DB-backed |
-| Orchestration | Phased workflow | Chain/Graph | App logic | Runtime managed |
-
-## Best Practices
-
-1. **Clear Prompts**: Use structured prompts for consistent results
-2. **Error Handling**: Always provide fallbacks for tool failures
-3. **Type Safety**: Leverage Pydantic for all data structures
-4. **Modularity**: Keep tools focused on single responsibilities
-5. **Observability**: Log key decisions and metrics
-
-## Conclusion
-
-This architecture provides a solid foundation for building sophisticated research agents. The modular design allows for easy extension while maintaining clean separation of concerns. The use of structured data throughout ensures reliability and makes the system easier to debug and maintain.
+```
+openhands-deep-agent/
+├── 00_simple_agent.ipynb      # SDK basics + MCP integration
+├── 01_deep_research.ipynb     # 3-phase deep research workflow
+├── 02_parallel_research.ipynb # Parallel sub-agent delegation
+├── demo_fault_recovery.py     # Persistence/crash recovery demo
+├── .conversations/            # SDK persistence (auto-created)
+├── research_plan.md           # Generated: working plan + findings
+├── critique.md                # Generated: plan evaluation
+└── research_report.md         # Generated: final report
+```
