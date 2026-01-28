@@ -6,7 +6,7 @@ This repository demonstrates how to build **deep research agents** using the [Op
 
 ## Status
 
-✅ **Working Examples** - Three notebooks (simple → deep → parallel)
+✅ **Working Examples** - Three notebooks + standalone fault recovery demo
 
 ---
 
@@ -21,6 +21,24 @@ A minimal introduction to the OpenHands SDK:
 - Running a basic research query
 
 **Best for:** Learning the SDK basics before diving into advanced patterns.
+
+### `demo_fault_recovery.py` - Persistence Demo Script
+
+A standalone Python script demonstrating the SDK's **fault recovery** capabilities:
+
+```bash
+# Start the script
+python demo_fault_recovery.py
+
+# Kill it mid-way (Ctrl+C) while it's searching...
+# ⚠️  INTERRUPTED! State saved!
+
+# Restart it
+python demo_fault_recovery.py
+# 🔄 RESUMING from where it left off!
+```
+
+**Best for:** Understanding how SDK persistence enables crash recovery in long-running agents.
 
 ### 2. `01_deep_research.ipynb` - Deep Research Agent (3-Phase Workflow)
 
@@ -169,6 +187,13 @@ When you run `02_parallel_research.ipynb`:
 | `findings_1.md` ... `findings_N.md` | Individual sub-agent findings |
 | `parallel_findings.md` | Aggregated raw findings |
 | `parallel_report.md` | **Final deliverable** - synthesized research report |
+
+When you run `demo_fault_recovery.py`:
+
+| File | Purpose |
+|------|---------|
+| `demo_findings.md` | Research output from the script |
+| `.conversations/<id>/` | Persisted state for crash recovery |
 
 ---
 
